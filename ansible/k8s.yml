@@ -1,0 +1,9 @@
+---
+
+- name: Deploy k8s
+  hosts: k8s
+  become: True
+  remote_user: vagrant
+
+  roles:
+    - k8s

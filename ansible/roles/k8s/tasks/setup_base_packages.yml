@@ -1,0 +1,35 @@
+---
+
+- name: Ensure bash,zsh , OpenSSL, and libssl are the latest versions
+  apt: name={{ item }} update_cache=yes state=latest
+  with_items:
+    - bash
+    - zsh
+    - openssl
+    - libssl-dev
+    - libssl-doc
+  tags: packages
+
+- name: Install Packages
+  apt: name={{ item }}
+  with_items:
+    - autojump
+    - bash-completion
+    - conntrack
+    - curl
+    - git
+    - htop
+    - ipset
+    - iptables
+    - ipvsadm
+    - jq
+    - libseccomp
+    - lsof
+    - ltrace
+    - strace
+    - sysstat
+    - tmux
+    - tree
+    - vim
+    - xauth
+    - docker.io

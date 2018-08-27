@@ -1,0 +1,98 @@
+---
+
+- name: mirror in china
+  action: template src=sources.list.j2 dest=/etc/apt/sources.list owner=root group=root mode=0644
+  tags: src_list
+
+- name: setup hosts file
+  lineinfile: dest=/etc/hosts line="127.0.0.1       {{ inventory_hostname }}" backup=yes
+
+- name: setup hosts file with kube nodes
+  lineinfile: dest=/etc/hosts line="{{ item.ip }}       {{ item.host }}"
+  with_items:
+  - host: "kube_node2"
+    ip: "10.64.3.2"
+  - host: "kube_node3"
+    ip: "10.64.3.3"
+  - host: "kube_node4"
+    ip: "10.64.3.4"
+
+- name: Update all packages to the latest stable version
+  apt: upgrade=dist
+
+- name: Update update_cache
+  apt: update_cache=yes cache_valid_time=3600
+
+- include: setup_base_packages.yml
+
+- name: Allow 'wheel' group to have passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^%wheel'
+    line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+
+- name: Add user k8s to wheel group
+  user: name=k8s groups=wheel append=yes state=present createhome=no
+
+- name: Add user k8s to docker group
+  user: name=k8s groups=docker append=yes state=present createhome=no
+
+$ sudo mkdir -p  /etc/docker/
+$ cat /etc/docker/daemon.json
+{
+    "registry-mirrors": ["https://hub-mirror.c.163.com", "https://docker.mirrors.ustc.edu.cn"],
+    "max-concurrent-downloads": 20
+}
+
+$ sudo sh -c "echo 'PATH=/opt/k8s/bin:$PATH:$HOME/bin:$JAVA_HOME/bin' >>/root/.bashrc"
+$ echo 'PATH=/opt/k8s/bin:$PATH:$HOME/bin:$JAVA_HOME/bin' >>~/.bashrc
+
+$ sudo systemctl stop firewalld
+$ sudo systemctl disable firewalld
+$ sudo iptables -F && sudo iptables -X && sudo iptables -F -t nat && sudo iptables -X -t nat
+$ sudo sudo iptables -P FORWARD ACCEPT
+
+sudo swapoff -a
+
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+$ cat > kubernetes.conf <<EOF
+net.bridge.bridge-nf-call-iptables=1
+net.bridge.bridge-nf-call-ip6tables=1
+net.ipv4.ip_forward=1
+vm.swappiness=0
+vm.overcommit_memory=1
+vm.panic_on_oom=0
+fs.inotify.max_user_watches=89100
+EOF
+$ sudo cp kubernetes.conf  /etc/sysctl.d/kubernetes.conf
+$ sudo sysctl -p /etc/sysctl.d/kubernetes.conf
+$ sudo mount -t cgroup -o cpu,cpuacct none /sys/fs/cgroup/cpu,cpuacct
+
+
+$ sudo modprobe br_netfilter
+$ sudo modprobe ip_vs$ sudo
+
+$ # 调整系统 TimeZone
+$ sudo timedatectl set-timezone Asia/Shanghai
+
+$ # 将当前的 UTC 时间写入硬件时钟
+$ sudo timedatectl set-local-rtc 0
+
+$ # 重启依赖于系统时间的服务
+$ sudo systemctl restart rsyslog 
+$ sudo systemctl restart crond
+
+$ sudo mkdir -p /opt/k8s/bin
+$ sudo chown -R k8s /opt/k8s
+
+$ sudo sudo mkdir -p /etc/kubernetes/cert
+$ sudo chown -R k8s /etc/kubernetes
+
+$ sudo mkdir -p /etc/etcd/cert
+$ sudo chown -R k8s /etc/etcd/cert
+
+$ sudo mkdir -p /var/lib/etcd && chown -R k8s /etc/etcd/cert
+
